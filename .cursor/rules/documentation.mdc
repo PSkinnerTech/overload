@@ -1,0 +1,6 @@
+---
+description: 
+globs: *.md,*.mdx
+alwaysApply: false
+---
+Never use emojis within documentation.
