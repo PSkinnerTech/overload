@@ -36,6 +36,33 @@ const overloadApi = {
     submit: (rating: number) => ipcRenderer.invoke('feedback:submit', rating),
   },
   
+  // Audio recording methods
+  audio: {
+    startRecording: () => ipcRenderer.invoke('audio:start-recording'),
+    stopRecording: () => ipcRenderer.invoke('audio:stop-recording'),
+    pauseRecording: () => ipcRenderer.invoke('audio:pause-recording'),
+    resumeRecording: () => ipcRenderer.invoke('audio:resume-recording'),
+    getState: () => ipcRenderer.invoke('audio:get-state'),
+    sendChunk: (chunk: Float32Array) => ipcRenderer.invoke('audio:send-chunk', chunk),
+  },
+  
+  // Transcription methods
+  transcription: {
+    start: (sessionId: string) => ipcRenderer.invoke('transcription:start', sessionId),
+    stop: () => ipcRenderer.invoke('transcription:stop'),
+    setPrivacyMode: (enabled: boolean) => ipcRenderer.invoke('transcription:set-privacy-mode', enabled),
+    getStatus: () => ipcRenderer.invoke('transcription:get-status'),
+    webSpeechResult: (result: any) => ipcRenderer.invoke('transcription:web-speech-result', result),
+  },
+  
+  // Document processing methods
+  document: {
+    process: (sessionId: string, transcript: string, options?: any) => 
+      ipcRenderer.invoke('document:process', sessionId, transcript, options),
+    list: () => ipcRenderer.invoke('document:list'),
+    open: (filename: string) => ipcRenderer.invoke('document:open', filename),
+  },
+  
   // Event listeners
   on: (channel: string, callback: (...args: unknown[]) => void) => {
     const validChannels = [
@@ -43,6 +70,19 @@ const overloadApi = {
       'sync:completed',
       'auth:status-changed',
       'overload:index-updated',
+      'audio:recording-started',
+      'audio:recording-stopped',
+      'audio:level-update',
+      'transcription:started',
+      'transcription:stopped',
+      'transcription:result',
+      'transcription:start-web-speech',
+      'transcription:stop-web-speech',
+      'transcription:mode-switched',
+      'document:processing-started',
+      'document:processing-completed',
+      'document:processing-warning',
+      'document:processing-failed',
     ];
     
     if (validChannels.includes(channel)) {

@@ -1,61 +1,57 @@
 ---
 title: "Voice Implementation"
-description: "The technical architecture for Aurix's voice capture, processing, and transcription pipeline."
+description: "The hybrid technical architecture for Aurix's voice capture, processing, and transcription pipeline."
 sidebar_position: 4
 ---
 
 # Voice Implementation Architecture
 
-## Overview
+## Overview: A Hybrid Approach
 
-Aurix's voice recording system is designed for a seamless, low-latency experience, allowing users to capture their thoughts effortlessly. The implementation supports multiple recording modes, provides real-time feedback, and performs all processing locally to ensure user privacy.
+Aurix's voice system is built on a hybrid architecture to provide a seamless, low-latency, and reliable transcription experience under any network condition. This approach ensures the best possible user experience by combining the strengths of both cloud-based and local speech recognition engines.
 
-## Recording Architecture
-
-The journey from spoken word to structured data follows a clear pipeline, all managed within the Electron application.
+-   **Online Mode (Default)**: When an internet connection is available, Aurix uses the **Web Speech API** built into modern Chromium browsers. This provides high-accuracy, real-time streaming transcription with minimal local resource usage.
+-   **Offline Mode (Automatic Fallback)**: If the user is offline, or if they enable "Privacy Mode," Aurix automatically switches to a local **Vosk** engine. This ensures the application remains fully functional without an internet connection, keeping all voice data entirely on the user's machine.
 
 ```mermaid
 graph TD
-    subgraph "User Interface"
-        A[Recording Controls] --> B[Global Hotkey Listener]
-        B --> C[Recording State Manager]
-        D[Visual Feedback] --> C
-    end
+    A[Voice Input] --> B{Internet Available?};
+    B -->|Yes| C[Web Speech API];
+    B -->|No| D[Vosk Local Engine];
+    C --> E[Real-time Transcription Stream];
+    D --> E;
+    E --> F[LangGraph Processing];
     
-    subgraph "Local Audio Pipeline"
-        C --> E[Audio Capture (Web Audio API)]
-        E --> F[Real-time Enhancement (VAD, Noise Gate)]
-        F --> G[Audio Buffer Management]
-        G --> H[WAV Encoding & Storage]
-    end
+    H[User Privacy Mode] -->|Force Offline| D;
     
-    subgraph "Local AI Processing"
-        G --> I[Whisper.cpp Engine]
-        I --> J[Transcription Stream]
-        J --> K[LangGraph Workflow]
-    end
-    
-    K --> D
+    style C fill:#4CAF50;
+    style D fill:#2196F3;
 ```
 
-## Recording Modes
+## Architecture & Implementation
 
-To provide a flexible user experience, Aurix will support several recording modes:
+### 1. Hybrid Transcription Service (Main Process)
+The core of this system is a `HybridTranscriptionService` that lives in the Electron main process. Its responsibilities include:
+-   **Connectivity Monitoring**: Regularly checks for an active internet connection.
+-   **Mode Switching**: Seamlessly transitions between Web Speech API and Vosk based on connectivity or user preference.
+-   **Vosk Initialization**: Manages the local Vosk model, including downloading it on first use.
+-   **Centralized Events**: Emits a consistent stream of transcription events to the rest of the application, regardless of the underlying source.
 
-1.  **Push-to-Talk (PTT)**: The user holds a global hotkey to record and releases it to stop. This is ideal for short, focused thoughts.
-2.  **Click-to-Toggle**: A single click on the record button starts the recording, and another click stops it. This is suited for longer, continuous sessions.
-3.  **Voice Activity Detection (VAD)**: The system automatically starts recording when the user begins speaking and stops after a period of silence. This offers a hands-free experience.
+### 2. Web Speech API Handler (Renderer Process)
+-   Because the Web Speech API is a browser API, it must be run from the renderer process.
+-   A handler in the renderer will listen for IPC commands from the main process to start or stop recognition.
+-   As the Web Speech API produces results, the handler will immediately forward them back to the `HybridTranscriptionService` in the main process via IPC.
 
-## Technical Implementation Details
+### 3. Vosk Engine (Main Process)
+-   The Vosk recognizer and its language models are managed entirely within the main process.
+-   Raw audio data from the capture pipeline is piped directly to the Vosk recognizer.
+-   Vosk's streaming recognition capabilities provide partial and final results, which are then formatted into the same event structure as the Web Speech API results.
 
-### Audio Capture & Processing
--   **Web Audio API**: We will use the browser-standard Web Audio API, accessed within the Electron environment, to capture microphone input. We will request a 16kHz mono audio stream, which is optimal for the Whisper transcription model.
--   **AudioWorklet**: For high-performance audio processing that doesn't block the main thread, an `AudioWorklet` will be used. This worklet will handle buffering and can apply real-time enhancements like noise reduction.
--   **Local Storage**: Raw audio is captured, encoded into a WAV file, and stored locally in the application's data directory. This ensures no data is lost and provides an artifact for future reprocessing if needed.
+### 4. Audio Processing Pipeline
+The initial audio capture remains the same:
+-   The **Web Audio API** captures 16kHz mono audio.
+-   An **AudioWorklet** processes the audio in a separate thread to prevent UI blocking.
+-   The processed audio chunks are sent to the main process via IPC.
+-   The `HybridTranscriptionService` then routes these audio chunks to the active engine (Vosk) or signals the renderer to continue its own processing (Web Speech).
 
-### Local Transcription with `whisper.cpp`
--   **Engine**: We will integrate `whisper.cpp`, a high-performance C++ port of OpenAI's Whisper model. This allows for fast, accurate, and completely private speech-to-text.
--   **Streaming Mode**: The integration will use `whisper.cpp`'s streaming capabilities to provide a near real-time transcript to the user as they speak.
--   **Model Management**: The application will include a system to download and manage different Whisper model sizes (e.g., tiny, base, small), allowing the user to balance speed and accuracy based on their hardware. The app will intelligently select an optimal default model on first launch.
-
-This architecture ensures that the core experience of capturing voice is robust, private, and performant, laying a solid foundation for the subsequent AI processing by LangGraph. 
+This hybrid architecture ensures that Aurix [[memory:911348]] is always responsive and functional, providing a superior user experience while respecting user privacy. 

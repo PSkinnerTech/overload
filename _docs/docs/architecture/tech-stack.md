@@ -37,9 +37,9 @@ This document outlines the complete technology stack for Aurix. Each choice is d
 ## Voice & AI Processing
 
 ### Voice Processing
-- **Engine**: **whisper.cpp** for high-performance, local speech-to-text.
-- **Model Strategy**: Start with `whisper-tiny` (39MB) for broad compatibility, with the ability to use larger models like `whisper-base` (74MB) for better accuracy on more powerful machines.
-- **Integration**: A Node.js addon for `whisper.cpp` will be used for direct, efficient integration with the Electron main process.
+- **Primary Engine (Online)**: **Web Speech API** for high-accuracy, low-latency cloud-based transcription.
+- **Secondary Engine (Offline)**: **Vosk** for reliable, private, on-device transcription.
+- **Hybrid Approach**: The application will automatically switch between engines based on internet connectivity and user preference, ensuring the best experience in any environment.
 
 ### AI Workflow Orchestration
 - **Framework**: **LangGraph** (JavaScript/TypeScript version).

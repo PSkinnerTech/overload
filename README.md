@@ -1,28 +1,34 @@
-# Overload: Your AI-Powered Workload Awareness Assistant
+# PIVOT FROM OVERLOAD TO AURIX
 
-**Overload** is a local-first, Electron-based desktop application designed to help you understand and manage your personal workload before you hit burnout. It analyzes your scheduled tasks, meetings, and behavior patterns to calculate a personalized **Overload Index (θ)**, giving you real-time insight into when you're taking on too much.
+This project began as "Overload", a tool designed to analyze tasks from the Motion API to calculate a user's workload. During initial development, we discovered that limitations within the Motion API made the core concept unfeasible and unreliable.
 
-Unlike calendar tools that only optimize time, Overload measures your actual cognitive and task load, using AI to make your schedule *sustainable*—not just efficient.
+This challenge prompted a pivot to "Aurix", a more powerful, voice-first documentation assistant. The new direction focuses on leveraging local AI for its core functionality, removing the dependency on external APIs and providing greater control, privacy, and a more innovative solution to a different productivity bottleneck.
+
+# Aurix: Your AI-Powered Thought-to-Documentation Assistant
+
+**Aurix** is a local-first, Electron-based desktop application that transforms your spoken ideas into structured, professional documentation. It's designed to eliminate the friction between your thoughts and the written word, providing a seamless way to capture and organize your best ideas before they're lost.
+
+As a unique secondary feature, Aurix analyzes the complexity of your captured thoughts to provide a real-time **Cognitive Load Index (θ)**, a metric that helps you understand your own cognitive load during creative sessions.
 
 ---
 
 ## Core Features
 
--   **Motion API Sync**: Securely connects to your [Motion](https://usemotion.com) account to pull task, project, and schedule data.
--   **Overload Index (θ) Engine**: Calculates a personalized workload score using factors like task density, meeting hours, context switching, and deadline pressure.
--   **AI-Powered Workflows**: Uses **LangGraph** to orchestrate the complex, multi-step process of calculating the Overload Index locally and securely.
--   **UI Dashboard**: Visualizes your workload with a real-time gauge, historical trend graphs, and detailed breakdown cards.
--   **Adaptive Feedback Loop**: Learns from your subjective feedback to make the Overload Index more accurate and personalized over time.
+-   **Voice-to-Document**: Speak your thoughts, and Aurix uses a local AI workflow to generate structured Markdown documents in real-time.
+-   **Automatic Diagramming**: Describe a system or process, and Aurix will automatically generate the corresponding Mermaid.js diagram.
+-   **Local-First & Private**: All voice processing, transcription, and AI analysis happen entirely on your machine. Your data is yours.
+-   **Cognitive Load Index (θ)**: Get feedback on the complexity of your ideas, helping you identify your most demanding and creative periods.
+-   **Optional Cloud Sync**: Opt-in to end-to-end encrypted cloud backup and multi-device synchronization.
 
 ## Technology Stack
 
 -   **Framework**: [Electron Forge](https://www.electronforge.io/)
 -   **Frontend**: [React](https://react.dev/) & [Vite](https://vitejs.dev/)
 -   **Language**: [TypeScript](https://www.typescriptlang.org/)
--   **Styling**: [Tailwind CSS](https://tailwindcss.com/)
--   **Component Library**: [shadcn/ui](https://ui.shadcn.com/)
 -   **AI Workflow**: [LangGraph](https://langchain.com/docs/langgraph)
--   **Documentation**: [Docusaurus](https://docusaurus.io/)
+-   **Local Transcription**: [whisper.cpp](https://github.com/ggerganov/whisper.cpp)
+-   **Local LLMs**: [Ollama](https://ollama.com/)
+-   **UI**: [Tailwind CSS](https://tailwindcss.com/) & [shadcn/ui](https://ui.shadcn.com/)
 
 ## Getting Started (Development)
 

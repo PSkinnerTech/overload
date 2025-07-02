@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is an Electron desktop application using TypeScript and Vite as the build tool. The project uses Electron Forge for packaging and distribution across Windows, macOS, and Linux platforms.
+This is an Electron desktop application in transition from "Overload" (workload analysis tool) to "Aurix" (AI-powered voice-to-documentation assistant). The application uses TypeScript, React 19, and Vite as the build tool, with Electron Forge for packaging across Windows, macOS, and Linux platforms.
 
 ## Development Commands
 
@@ -24,60 +24,76 @@ This is an Electron desktop application using TypeScript and Vite as the build t
 The application follows Electron's multi-process architecture:
 
 ### Process Structure
-- **Main Process** (`src/main.ts`): Controls application lifecycle, creates browser windows, handles system events
-- **Preload Script** (`src/preload.ts`): Bridge between main and renderer processes for secure API exposure
-- **Renderer Process** (`src/renderer.ts`): Frontend UI logic and user interactions
+- **Main Process** (`src/main.ts`): Controls application lifecycle, creates browser windows, handles system events, manages IPC communication, and background sync
+- **Preload Script** (`src/preload.ts`): Secure bridge between main and renderer processes, exposes `window.overloadApi`
+- **Renderer Process** (`src/renderer.tsx`): React application with TypeScript
 
 ### Key Technical Details
 - TypeScript compilation targets ESNext with CommonJS modules
 - Vite handles bundling with separate configs for main, preload, and renderer processes
-- Node.js integration is disabled in renderer for security (can be enabled if needed)
-- Electron Fuses configured to disable risky features
-- ASAR packaging enabled for source protection
+- Node.js integration is disabled in renderer for security (contextIsolation: true)
+- Electron Fuses configured for security (ASAR packaging, cookie encryption)
+- React 19 with TypeScript support
+- Tailwind CSS v4 with shadcn/ui components
+- electron-store for encrypted local storage
+- electron.safeStorage for secure credential management
 
 ### File Structure
 ```
 src/
-├── main.ts       # Main process entry point
-├── preload.ts    # Preload script (currently empty)
-├── renderer.ts   # Renderer process entry point
-└── index.css     # Renderer styles
+├── main.ts         # Main process entry point
+├── preload.ts      # Preload script with IPC bridge
+├── renderer.tsx    # React app entry point
+├── components/     # React components
+├── lib/           # Utilities and helpers
+└── styles/        # CSS and styling
 ```
 
-## Phase 0 Implementation Status
-
-Phase 0 has been completed with the following implementations:
-
-1. **React Integration**: Added React 19 with TypeScript support
-2. **Secure IPC Bridge**: Implemented using contextBridge with promise-based communication
-3. **UI Framework**: Integrated Tailwind CSS v4 with custom shadcn/ui components
-4. **Local Storage**: Integrated electron-store with encryption support
-5. **Secure Credentials**: Implemented using electron.safeStorage for OAuth tokens
-
-### Key APIs Available
+## IPC API Reference
 
 The `window.overloadApi` object provides:
-- `auth`: OAuth connection and status methods
-- `sync`: Data synchronization controls
-- `overloadIndex`: Current index and history retrieval
-- `settings`: Application settings management
-- `feedback`: User feedback submission
-- `on/removeAllListeners`: Event subscription management
+- `auth.connect(method, token?)`: Initiate OAuth or API key authentication
+- `auth.getStatus()`: Get current authentication status
+- `sync.startSync()`: Start background data synchronization
+- `sync.stopSync()`: Stop background sync
+- `overloadIndex.getCurrent()`: Get current workload index
+- `overloadIndex.getHistory()`: Get historical workload data
+- `settings.get(key)`: Retrieve settings value
+- `settings.set(key, value)`: Update settings
+- `feedback.send(data)`: Submit user feedback
+- `on(channel, callback)`: Subscribe to events
+- `removeAllListeners(channel)`: Unsubscribe from events
+
+## Project Transition Notes
+
+The codebase is transitioning from "Overload" to "Aurix":
+- **Legacy (Overload)**: Motion API integration for workload analysis
+- **Future (Aurix)**: Local AI processing for voice-to-documentation
+- Many references still use "Overload" naming and should be updated when refactoring
 
 ## Important Considerations
 
-1. **Security**: Node.js integration is disabled in the renderer process by default. To enable it, you must:
-   - Set `nodeIntegration: true` in `webPreferences` (src/main.ts:23)
-   - Add `sandbox: false` to `webPreferences`
-   - Only do this if absolutely necessary and understand the security implications
+1. **Security**: Always use the preload script and contextBridge for IPC. Never enable nodeIntegration without careful consideration.
 
-2. **Cross-Process Communication**: Use the preload script to expose safe APIs from main to renderer process via `contextBridge`
+2. **Platform Differences**: Test on all target platforms, especially for:
+   - Window creation and management
+   - File system operations
+   - Native dialog behaviors
 
-3. **Platform Differences**: The main process handles platform-specific behaviors (Windows shortcut creation, macOS dock persistence)
+3. **Development Mode**: DevTools automatically open in development for debugging
 
-4. **Development Mode**: The app automatically opens DevTools in development for debugging
+4. **Build Output**: 
+   - Development: Uses Vite's dev server
+   - Production: Outputs to `out/` directory
+   - Installers: Created in `out/make/`
 
-5. **Build Output**: 
-   - Development builds use Vite's dev server
-   - Production builds are output to `out/` directory
-   - Platform installers are created in `out/make/`
+## Current Implementation Status
+
+Phase 0 has been completed with:
+1. React 19 and TypeScript integration
+2. Secure IPC bridge implementation
+3. Tailwind CSS v4 with shadcn/ui setup
+4. Encrypted local storage
+5. Secure credential management
+
+The application is functional but requires updates to align with the Aurix vision.

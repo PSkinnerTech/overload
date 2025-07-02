@@ -2,11 +2,14 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { OverloadMeter } from './OverloadMeter';
 import { TrendGraph } from './TrendGraph';
 import { BreakdownCards } from './BreakdownCards';
 import { TaskInsightPanel } from './TaskInsightPanel';
 import { FeedbackSlider } from './FeedbackSlider';
+import { VoiceCapture } from './VoiceCapture';
+import { BarChart, Mic } from 'lucide-react';
 
 interface DashboardProps {
   onDisconnect: () => void;
@@ -164,9 +167,9 @@ export function Dashboard({ onDisconnect }: DashboardProps) {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-bold">Overload Dashboard</h1>
+              <h1 className="text-2xl font-bold">Aurix</h1>
               <p className="text-sm text-muted-foreground mt-1">
-                Last sync: {formatLastSync(syncStatus.lastSync)}
+                AI-powered thought-to-documentation assistant
               </p>
             </div>
             <div className="flex items-center gap-4">
@@ -194,55 +197,72 @@ export function Dashboard({ onDisconnect }: DashboardProps) {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {error && (
-          <Card className="mb-6 bg-destructive/10 border-destructive/20">
-            <CardContent className="pt-6">
-              <p className="text-destructive">{error}</p>
-            </CardContent>
-          </Card>
-        )}
+        <Tabs defaultValue="voice" className="space-y-6">
+          <TabsList className="grid w-full max-w-md grid-cols-2">
+            <TabsTrigger value="voice" className="flex items-center gap-2">
+              <Mic className="h-4 w-4" />
+              Voice Capture
+            </TabsTrigger>
+            <TabsTrigger value="overload" className="flex items-center gap-2">
+              <BarChart className="h-4 w-4" />
+              Workload Analysis
+            </TabsTrigger>
+          </TabsList>
 
-        {!overloadData ? (
-          <Card>
-            <CardContent className="text-center py-12">
-              <p className="text-muted-foreground mb-4">
-                No overload data available yet. Try syncing your Motion data or use demo mode.
-              </p>
-              <div className="flex gap-4 justify-center">
-                <Button onClick={useMockData} variant="outline">
-                  Use Demo Data
-                </Button>
-                <Button onClick={triggerSync}>
-                  Sync Now
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="space-y-6">
-            {/* Top Row: Meter and Summary */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <div className="lg:col-span-1">
-                <OverloadMeter 
-                  value={overloadData.index} 
-                  timestamp={overloadData.timestamp}
-                />
-              </div>
-              <div className="lg:col-span-2">
-                <TrendGraph history={history} current={overloadData} />
-              </div>
-            </div>
+          <TabsContent value="voice" className="space-y-6">
+            <VoiceCapture />
+          </TabsContent>
 
-            {/* Breakdown Cards */}
-            <BreakdownCards breakdown={overloadData.breakdown} />
+          <TabsContent value="overload" className="space-y-6">
+            {error && (
+              <Card className="mb-6 bg-destructive/10 border-destructive/20">
+                <CardContent className="pt-6">
+                  <p className="text-destructive">{error}</p>
+                </CardContent>
+              </Card>
+            )}
 
-            {/* Bottom Row: Task Insights and Feedback */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <div className="lg:col-span-2">
-                <TaskInsightPanel />
-              </div>
-              <div className="lg:col-span-1">
-                <FeedbackSlider 
+            {!overloadData ? (
+              <Card>
+                <CardContent className="text-center py-12">
+                  <p className="text-muted-foreground mb-4">
+                    No overload data available yet. Try syncing your Motion data or use demo mode.
+                  </p>
+                  <div className="flex gap-4 justify-center">
+                    <Button onClick={useMockData} variant="outline">
+                      Use Demo Data
+                    </Button>
+                    <Button onClick={triggerSync}>
+                      Sync Now
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-6">
+                {/* Top Row: Meter and Summary */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  <div className="lg:col-span-1">
+                    <OverloadMeter 
+                      value={overloadData.index} 
+                      timestamp={overloadData.timestamp}
+                    />
+                  </div>
+                  <div className="lg:col-span-2">
+                    <TrendGraph history={history} current={overloadData} />
+                  </div>
+                </div>
+
+                {/* Breakdown Cards */}
+                <BreakdownCards breakdown={overloadData.breakdown} />
+
+                {/* Bottom Row: Task Insights and Feedback */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  <div className="lg:col-span-2">
+                    <TaskInsightPanel />
+                  </div>
+                  <div className="lg:col-span-1">
+                    <FeedbackSlider 
                   currentIndex={overloadData.index} 
                   onSubmit={handleFeedbackSubmit}
                 />
@@ -250,6 +270,8 @@ export function Dashboard({ onDisconnect }: DashboardProps) {
             </div>
           </div>
         )}
+          </TabsContent>
+        </Tabs>
       </main>
     </div>
   );

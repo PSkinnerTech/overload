@@ -1,0 +1,11 @@
+What's up everybody, Patrick Skinner here, and this is week 3 of Gauntlet AI. In this week, we are focused on developing a desktop application so this time it won't be a browser app or a mobile application but a desktop application which is a very new experience for me. Has been pretty solid developing with Electron. 
+
+My idea for this week's application is called Overload. It's intended to basically tell you as an AI assistant if you are overloaded with projects and tasks, and when should you experience that overload, i.e., through stress. 
+
+Overload securely connects to your motion and analyzes your *actual* cognitive load. It calculates a single, personalized Overload Index, giving you real-time insight into when you're taking on too much. For those of you that don't know what Motion is, it's basically like Notion, Calendly, and several different project management tools all wrapped up in one. 
+
+That's Overload.
+
+Now, real talk... I've been running into some issues using Motion's API. Part of me should have expected this simply because Motion is a fairly new tool, and I honestly don't know if their API is really considered our priority for development. I have developed a Slack app using the Motion API in the past. But because of how light and simple that application was, I didn't run into some of these limitations like I am now.
+
+Regardless, let's get into the docs and what I've built so far. We'll talk a little bit about philosophies, etc.
