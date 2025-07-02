@@ -14,20 +14,20 @@ Productivity tools are excellent at managing time, but they are notoriously poor
 
 The core issue is that traditional tools lack **workload awareness**. They can tell you *what* you're supposed to be doing, but not *how much* you're actually taking on. This is where the opportunity for an intelligent desktop application lies.
 
-## 2. The Core Concept: The "Overload Index (θ)"
+## 2. The Core Concept: The "Cognitive Load Index (θ)"
 
-The solution isn't just about better scheduling; it's about quantifying workload in a personalized way. This led to the concept of the **Overload Index (θ)**, a single, personalized score that represents your current cognitive load.
+The solution isn't just about better scheduling; it's about quantifying cognitive load in a personalized way. This led to the concept of the **Cognitive Load Index (θ)**, a single, personalized score that represents your current mental effort during a creative session.
 
-To make this concept a reality, I first had to understand the data sources. The [Motion API Best Practices](./best-practices/motion.md) document was the result of this initial learning phase. It outlines how to responsibly fetch and cache data, but more importantly, it details what data points are crucial for calculating θ:
-- **Task Density**: The number of tasks scheduled in a given period.
-- **Time Pressure**: The ratio of scheduled work to available time.
-- **Deadline Proximity**: The urgency driven by approaching deadlines.
-- **Context Switching**: The frequency of shifts between different projects or work types, which we can infer from task metadata.
-- **Task Complexity**: Inferred from keywords, descriptions, and user-provided tags (`effort:high`, etc.).
+This index is calculated based on several factors derived from the user's speech:
+- **Transcript Length & Density**: The volume of spoken content.
+- **Conceptual Complexity**: The intricacy of the topics being discussed.
+- **Jargon & Technical Terms**: The presence of domain-specific language.
+- **Diagram Generation**: The number of complex diagrams generated from the speech.
+- **Context Switching**: The frequency of shifts between different high-level topics.
 
 ## 3. The Tool for the Job: Why LangGraph?
 
-Calculating θ is not a simple, one-step process. It's a multi-stage workflow that involves fetching data, calculating base metrics, analyzing context, and generating insights. This is a perfect use case for an AI workflow orchestrator.
+Calculating θ is not a simple, one-step process. It's a multi-stage workflow that involves capturing audio, transcribing it, analyzing the content for complexity, generating a document, and finally calculating the score. This is a perfect use case for an AI workflow orchestrator.
 
 As outlined in the [Project Scope](./scope.md), **LangGraph** was chosen for several key reasons:
 1.  **State Management**: It allows us to maintain a persistent state object that carries information through the workflow, from raw data to the final calculated index.
