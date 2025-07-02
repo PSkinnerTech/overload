@@ -93,13 +93,17 @@ const createWindow = async () => {
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
-app.on('ready', () => {
+app.on('ready', async () => {
   // Set up IPC handlers now that the app is ready
   setupIpcHandlers();
 
-  logger.info('App ready, creating window');
+  // It's crucial to request permissions *before* creating the window
+  // that might depend on those permissions.
+  logger.info('App ready, requesting microphone access');
+  await requestMicrophoneAccess();
+
+  logger.info('Permissions handled, creating window');
   createWindow();
-  requestMicrophoneAccess();
   
   // Schedule daily summary notification for 5 PM
   notificationService.scheduleDailySummary(17, 0);

@@ -19,6 +19,33 @@ interface Settings {
 export function setupIpcHandlers() {
   logger.info('Setting up IPC handlers');
   
+  // App-level handlers (register these first)
+  ipcMain.handle('app:get-version', () => {
+    logger.info('app:get-version called');
+    return app.getVersion();
+  });
+  
+  ipcMain.handle('app:get-microphone-access', async () => {
+    logger.info('app:get-microphone-access called');
+    if (process.platform === 'darwin') {
+      // On macOS, we can check the current status
+      const status = systemPreferences.getMediaAccessStatus('microphone');
+      logger.info('Microphone access status', { status });
+      
+      // If not determined, request access
+      if (status === 'not-determined') {
+        const granted = await systemPreferences.askForMediaAccess('microphone');
+        return granted ? 'granted' : 'denied';
+      }
+      
+      return status;
+    } else {
+      // On Windows/Linux, permissions are usually granted by default
+      // but we should still check if a microphone is available
+      return 'granted';
+    }
+  });
+  
   // Set up sync event forwarding
   motionSync.on('sync:progress', (status) => {
     BrowserWindow.getAllWindows().forEach(window => {

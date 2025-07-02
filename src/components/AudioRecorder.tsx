@@ -12,6 +12,7 @@ interface AudioRecorderProps {
 
 export function AudioRecorder({ className }: AudioRecorderProps) {
   const { state, startRecording, stopRecording, pauseRecording, resumeRecording, permissionGranted } = useAudioRecorder();
+  const [sessionId] = React.useState(() => `rec_${Date.now()}`);
 
   const formatDuration = (ms: number) => {
     const seconds = Math.floor(ms / 1000);
@@ -24,7 +25,7 @@ export function AudioRecorder({ className }: AudioRecorderProps) {
     if (state.isRecording) {
       await stopRecording();
     } else {
-      await startRecording();
+      await startRecording(sessionId);
     }
   };
 
@@ -51,7 +52,16 @@ export function AudioRecorder({ className }: AudioRecorderProps) {
       {/* Permission warning */}
       {!permissionGranted && !state.error && (
         <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded">
-          Please grant microphone permission to start recording
+          <p className="mb-2">Microphone permission is required to record audio.</p>
+          <p className="text-sm">On macOS: Go to System Settings → Privacy & Security → Microphone and enable access for this app.</p>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="mt-2"
+            onClick={() => window.location.reload()}
+          >
+            Refresh after granting permission
+          </Button>
         </div>
       )}
 
