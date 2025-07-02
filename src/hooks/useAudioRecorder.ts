@@ -98,19 +98,26 @@ export function useAudioRecorder(): UseAudioRecorderReturn {
   }, [state.isRecording, state.isPaused]);
 
   const checkPermissions = async () => {
-    console.log('Requesting microphone permission via main process...');
-    const status = await window.overloadApi.getMicrophoneAccess();
-    console.log('Microphone access status:', { status });
+    try {
+      console.log('Requesting microphone permission via main process...');
+      const status = await window.overloadApi.getMicrophoneAccess();
+      console.log('Microphone access status:', { status });
 
-    if (status !== 'granted') {
-      const message = 'Microphone permission was not granted. Please grant it in System Settings.';
-      console.warn(message);
-      setPermissionError(message);
-      return false;
+      if (status !== 'granted') {
+        const message = 'Microphone permission was not granted. Please grant it in System Settings.';
+        console.warn(message);
+        setPermissionError(message);
+        return false;
+      }
+      
+      setPermissionError(null);
+      return true;
+    } catch (error) {
+      console.error('Failed to check microphone permissions via IPC:', error);
+      // Fallback to browser API check
+      console.log('Falling back to browser permission check');
+      return permissionGranted;
     }
-    
-    setPermissionError(null);
-    return true;
   };
 
   const startRecording = useCallback(async (sessionId: string) => {
