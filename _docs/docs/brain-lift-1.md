@@ -53,7 +53,11 @@ graph TD
         G[Analyze Task Metadata] --> H[Calculate Context Switching Score];
     end
 
-    [D, E, F, H] --> I{Aggregate & Weigh Scores};
+    D --> I{Aggregate & Weigh Scores};
+    E --> I;
+    F --> I;
+    H --> I;
+    
     I --> J(Calculate Initial θ Index);
     J --> K{Incorporate User Feedback};
     K --> L[Generate Final θ Index & Insights];
