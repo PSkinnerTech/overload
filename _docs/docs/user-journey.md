@@ -1,96 +1,64 @@
-# The Overload User Journey
+# The Aurix User Journey
 
-This document outlines the end-to-end experience for a user of the Overload application, from initial setup to daily interaction and long-term adaptation.
+This document outlines the end-to-end experience for a user of Aurix, focusing on the voice-first workflow.
 
-## 1. First-Time Onboarding & Authentication
+## 1. First-Time Experience: Zero to Document in 60 Seconds
 
-The user's first interaction is designed to be simple, secure, and transparent, establishing trust and setting clear expectations.
-
-### Onboarding Flow
+The user's first interaction is designed to be immediate and rewarding. There are no mandatory sign-ups or complex configurations.
 
 ```mermaid
 flowchart TD
-    A[Start: User opens Overload for the first time] --> B{Show Welcome Screen}
-    B --> C[Explain what Overload does and the data it needs]
-    C --> D[User clicks &quot;Connect to Motion&quot;]
-    D --> E{Initiate Motion OAuth Flow}
-    E --> F[User authenticates with Motion & grants permissions]
-    F --> G{Overload receives tokens & performs initial data sync}
-    G --> H[Display the main dashboard with initial Overload Index]
-    H --> I[End: User is ready to use the app]
+    A[User opens Aurix] --> B(Shows a clean interface with a prominent 'Start Recording' button);
+    B --> C[User clicks 'Start Recording'];
+    C --> D{Microphone access requested};
+    D --> E[User grants permission];
+    E --> F(Recording starts, UI shows live waveform and status);
+    F --> G[User speaks their thoughts];
+    G --> H(UI displays live transcript);
+    H --> I[User clicks 'Stop Recording'];
+    I --> J{AI workflow processes the transcript};
+    J --> K(A structured document with diagrams appears in the editor);
+    K --> L[End: User has a complete document from their voice note];
 ```
 
-When the user clicks "Connect to Motion," they are guided through a standard, secure OAuth2 flow. Overload only requests the permissions necessary to analyze tasks and schedules, as outlined in the `scope.md` document.
+## 2. The Core Loop: From Thought to Document
 
-### Authentication Sequence Diagram
+The primary interaction is designed to be as frictionless as possible.
 
-The authentication process is handled securely between the Electron main process and the Motion API, ensuring that the renderer process is never exposed to sensitive credentials.
+1.  **Capture**: The user clicks the record button or uses a global hotkey. The app immediately starts listening.
+2.  **Speak**: The user describes a system, brainstorms ideas, or dictates meeting notes.
+3.  **Transcribe**: As the user speaks, a live transcript appears in the UI, powered by a local Whisper model. This provides immediate feedback that the system is hearing them correctly.
+4.  **Process**: When the user stops recording, the LangGraph workflow is triggered in the background. The UI shows a subtle "Processing..." state.
+5.  **Generate**: Within seconds, the raw transcript is replaced by a fully formatted Markdown document. The AI has automatically added headings, lists, bolded key terms, and even generated Mermaid diagrams based on the user's descriptions.
+6.  **Refine**: The user can then edit the generated document directly, or simply start a new recording to add more to it.
+
+## 3. Understanding Cognitive Load: The Cognitive Load Index (θ)
+
+After each session, the Cognitive Load Index is calculated and displayed.
+
+-   **Post-Session Insight**: Alongside the generated document, the user sees a score (e.g., "Cognitive Load: 78").
+-   **Contextual Breakdown**: Hovering over the score reveals *why* it was rated that way (e.g., "High complexity, technical jargon detected, 2 diagrams generated").
+-   **Historical Trends**: A separate dashboard allows the user to see their Cognitive Load Index over time, helping them identify which kinds of thinking or topics are most cognitively demanding.
+-   **Feedback Loop**: A simple slider asks, "How taxing was that session?" This feedback helps personalize the θ calculation for the future, making it more attuned to the individual user.
+
+## 4. Optional Cloud Features: Sync & Backup
+
+While the core experience is entirely local, the user can choose to enable cloud features.
 
 ```mermaid
 sequenceDiagram
-    participant R as Renderer Process
-    participant M as Main Process
-    participant S as Motion Auth Server
+    participant User
+    participant AurixApp as Aurix App
+    participant AuthProvider as Auth Provider
 
-    R->>M: User clicks Connect Motion button
-    M->>M: Opens a new BrowserWindow pointed at Motion's OAuth2 URL
-    Note over M,S: User interacts with the Motion login and consent screen in this new window.
-
-    S-->>M: Redirects to `overload://oauth/callback?code=...` with an authorization code
-    M->>M: Catches the custom protocol redirect and extracts the code
-    M->>S: Exchanges the authorization code for an access_token and refresh_token
-    S-->>M: Returns tokens
-    M->>M: Securely stores tokens using `electron.safeStorage`
-    M->>R: Notifies renderer via IPC that authentication is successful
-    R->>R: Transitions from login view to the main dashboard
+    User->>AurixApp: Navigates to Settings -> Cloud Sync
+    AurixApp->>AurixApp: Shows benefits (sync, backup) and privacy notice (E2E encryption)
+    User->>AurixApp: Clicks 'Sign In & Enable'
+    AurixApp->>AuthProvider: Initiates secure PKCE OAuth flow
+    Note over User,AuthProvider: User authenticates in a separate browser window
+    AuthProvider->>AurixApp: Returns authentication token
+    AurixApp->>AurixApp: Securely stores token, enables sync service
+    AurixApp->>User: Shows 'Sync Enabled' status
 ```
 
-## 2. The Core Loop: Daily Interaction
-
-Once set up, Overload becomes a daily companion for workload management. The core interaction loop is passive, providing insights with minimal user effort.
-
-### Daily Usage Flow
-
-```mermaid
-graph TD
-    subgraph "User's Morning"
-        A[Starts workday] --> B{Receives &quot;Daily Summary&quot; notification};
-        B --> C[Opens Overload to view dashboard];
-    end
-
-    subgraph "Throughout the Day"
-        D[App syncs with Motion in the background] --> E{Overload Index θ is updated};
-        E --> F{If θ > threshold, send real-time alert};
-        F --> G[User reviews alert & dashboard];
-    end
-    
-    subgraph "End of Day"
-        H[User provides feedback via slider] --> I{θ Engine learns and adapts};
-    end
-
-    C --> D;
-    G --> H;
-```
-
-The user's primary interaction is with the dashboard, which serves as the central hub for understanding their current and historical workload. The application's background sync and proactive notifications mean the user doesn't need to constantly check the app; it informs them when it matters most.
-
-## 3. Understanding Your Workload: The Dashboard
-
-The dashboard is the heart of Overload, providing multi-layered insights into the user's workload.
-
-1.  **The Overload Index (θ) Meter**: An immediate, color-coded gauge showing the current workload percentage against the user's calculated threshold. A reading over 100% indicates a state of overload.
-2.  **The Timeline Trend Graph**: Visualizes the θ index over the past week or month, helping the user identify patterns, such as consistently overloaded Wednesdays or periods of sustained high effort.
-3.  **Breakdown Cards**: These cards answer the "why" behind the current index. They show the primary contributors to the score, broken down by categories like:
-    *   **Task Load**: The sheer volume and complexity of scheduled tasks.
-    *   **Meeting Density**: The percentage of the day blocked out for meetings.
-    *   **Context Switching**: The frequency of shifts between different projects or types of work.
-4.  **Task Insight Panel**: This list highlights the specific tasks or meetings that are contributing most heavily to the current Overload Index, allowing the user to quickly identify what could be deferred or re-prioritized.
-
-## 4. Closing the Loop: Feedback & Personalization
-
-A key feature of Overload is its ability to learn and adapt to the individual.
-
--   **The Feedback Slider**: At any time, the user can adjust a simple slider to answer the question: *"How overloaded do you feel right now?"*
--   **Reinforcement Learning**: This user-provided feedback is fed back into the θ engine. If a user reports feeling highly overloaded when their index is only 70%, the system learns to adjust its sensitivity for that user. Conversely, if a user feels fine at 110%, the engine learns that they have a higher capacity for that specific type of workload.
-
-This feedback loop ensures that the Overload Index becomes a truly personalized and accurate reflection of the user's unique work patterns and capacity over time.
+This model ensures that user data remains private by default, with cloud services acting as an optional enhancement rather than a requirement.

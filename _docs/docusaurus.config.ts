@@ -5,8 +5,8 @@ import type * as Preset from '@docusaurus/preset-classic';
 // This runs in Node.js - Don't use client-side code here (browser APIs, JSX...)
 
 const config: Config = {
-  title: 'Overload Documentation',
-  tagline: 'Documentation for the Overload project',
+  title: 'Aurix Documentation',
+  tagline: 'Documentation for the Aurix project',
   favicon: 'img/favicon.ico',
 
   // Future flags, see https://docusaurus.io/docs/api/docusaurus-config#future
@@ -15,7 +15,7 @@ const config: Config = {
   },
 
   // Set the production url of your site here
-  url: 'https://overload-docs.vercel.app',
+  url: 'https://aurix-docs.vercel.app',
   // Set the /<baseUrl>/ pathname under which your site is served
   // For GitHub pages deployment, it is often '/<projectName>/'
   baseUrl: '/',
@@ -67,9 +67,9 @@ const config: Config = {
     // Replace with your project's social card
     image: 'img/docusaurus-social-card.jpg',
     navbar: {
-      title: 'Overload Docs',
+      title: 'Aurix Docs',
       logo: {
-        alt: 'Overload Logo',
+        alt: 'Aurix Logo',
         src: 'img/logo.svg',
       },
       items: [
@@ -129,7 +129,7 @@ const config: Config = {
           ],
         },
       ],
-      copyright: `Copyright © ${new Date().getFullYear()} Overload Project. Built with Docusaurus.`,
+      copyright: `Copyright © ${new Date().getFullYear()} Aurix Project. Built with Docusaurus.`,
     },
     prism: {
       theme: prismThemes.github,

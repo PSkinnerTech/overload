@@ -1,128 +1,116 @@
 ---
 title: "AI Workflow Architecture"
-description: "A detailed technical specification of the LangGraph-based workflow for calculating the Overload Index (θ)."
+description: "The LangGraph-based workflow for transforming voice into structured documentation and calculating the Cognitive Load Index (θ)."
 sidebar_position: 5
 ---
 
 # AI Workflow Architecture
 
-This document provides the detailed technical specification for the LangGraph-powered workflow that calculates the Overload Index (θ). It is the technical companion to the narrative found in the [BrainLift document](./brain-lift-1.md).
+This document provides the detailed technical specification for the LangGraph-powered workflow at the heart of Aurix. This state machine transforms raw audio into structured documents and calculates the Cognitive Load Index (θ).
 
-## 1. Graph State Definition
+## 1. High-Level Workflow
 
-The entire workflow operates on a persistent state object. This object is passed between nodes, with each node enriching or transforming the data within it. The state is defined by the following TypeScript interface:
-
-```typescript
-interface MotionTask {
-  id: string;
-  name: string;
-  projectId: string;
-  dueDate: string | null;
-  duration: number; // in minutes
-  description: string;
-}
-
-interface OverloadMetrics {
-  taskDensity: number;      // 0-1 scale
-  meetingLoad: number;      // 0-1 scale
-  deadlinePressure: number; // 0-1 scale
-  contextSwitching: number; // 0-1 scale
-}
-
-interface GraphState {
-  tasks: MotionTask[];
-  meetings: any[]; // Define meeting structure as needed
-  userFeedback: { score: number; timestamp: Date } | null;
-  
-  // Calculated values
-  metrics: OverloadMetrics | null;
-  weightedIndex: number;
-  finalIndex: number;
-  
-  // Final output
-  recommendations: string[];
-  error: string | null;
-}
-```
-
-## 2. Workflow Graph
-
-The following diagram illustrates the nodes and edges of the LangGraph workflow. Each node represents a distinct function or processing step.
+The process is a multi-stage pipeline designed for robustness, real-time feedback, and error recovery.
 
 ```mermaid
 graph TD
-    A[Start] --> B(fetch_data_node);
-    B --> C{calculate_metrics_node};
-    C --> D(analyze_context_node);
-    D --> E(aggregate_scores_node);
-    E --> F(apply_feedback_node);
-    F --> G{generate_insights_node};
-    G --> H[End];
-
-    subgraph "Error Handling"
-      B -- API Fail --> X(handle_error_node);
-      C -- Calc Fail --> X;
-      D -- Parse Fail --> X;
-    end
-    
-    X --> H;
-
-    style G fill:#f9f,stroke:#333,stroke-width:2px
+    A[Voice Input] --> B[Audio Processing & Transcription];
+    B --> C{Content & Complexity Analysis};
+    C --> D[Document Generation];
+    D --> E{Diagram Detection & Generation};
+    E --> F[Assemble Final Document];
+    F --> G[Calculate Cognitive Load Index (θ)];
+    G --> H[Update UI];
+    C --> G;
 ```
 
-## 3. Node-by-Node Breakdown
+## 2. State Definition
 
-### `fetch_data_node`
--   **Purpose**: To retrieve the raw data needed for the calculation.
--   **Inputs**: Trigger event (e.g., from a scheduler or manual sync).
+The workflow operates on a state object that is passed between nodes, each enriching it with new information.
+
+```typescript
+// A simplified version of the full state
+interface WorkflowState {
+  // Input
+  audioBuffer: ArrayBuffer | null;
+  
+  // Transcription
+  rawTranscript: string;
+  
+  // Analysis
+  documentType: 'technical' | 'meeting' | 'general';
+  topics: string[];
+  entities: string[];
+  complexityScore: number; // A score from 0-1 representing content complexity
+
+  // Generation
+  sections: Array<{ title: string; content: string }>;
+  diagrams: Array<{ title: string; mermaidCode: string }>;
+  
+  // Output
+  finalDocument: string;
+  cognitiveLoadIndex: number;
+  
+  // Control
+  errors: any[];
+}
+```
+
+## 3. Node Specifications
+
+### `transcription_node`
+-   **Purpose**: To convert the user's voice into text.
 -   **Process**:
-    1.  Calls the `MotionAPIService` to fetch tasks and calendar events for the relevant time window (e.g., today + next 2 days).
-    2.  Handles basic data validation and sanitization.
--   **Outputs**: Populates `state.tasks` and `state.meetings`. On failure, it populates `state.error` and transitions to `handle_error_node`.
+    1.  Receives a raw audio buffer.
+    2.  Uses a local `whisper.cpp` model to perform speech-to-text.
+    3.  Provides a real-time stream of the transcript to the UI.
+-   **Output**: Populates `state.rawTranscript`.
 
-### `calculate_metrics_node`
--   **Purpose**: To perform initial, objective calculations on the raw data.
--   **Inputs**: `state.tasks`, `state.meetings`.
+### `analysis_node`
+-   **Purpose**: To understand the content and complexity of the user's speech.
 -   **Process**:
-    1.  **Task Density**: Calculates the total number of tasks.
-    2.  **Meeting Load**: Calculates the total duration of scheduled meetings.
-    3.  **Deadline Pressure**: Calculates a score based on how many tasks are due soon.
--   **Outputs**: Populates the `taskDensity`, `meetingLoad`, and `deadlinePressure` fields in `state.metrics`.
+    1.  Uses a local LLM (via Ollama) to analyze the `rawTranscript`.
+    2.  **Classifies** the content (e.g., technical spec, meeting notes).
+    3.  **Extracts** key topics and named entities.
+    4.  **Calculates** a `complexityScore` based on factors like technical jargon, density of concepts, and sentence structure. This score is a primary input for the Cognitive Load Index.
+-   **Output**: Populates `state.documentType`, `state.topics`, `state.entities`, and `state.complexityScore`.
 
-### `analyze_context_node`
--   **Purpose**: To extract qualitative, contextual information that isn't immediately obvious from the raw numbers. This is a key "intelligence" step.
--   **Inputs**: `state.tasks`.
+### `document_generation_node`
+-   **Purpose**: To structure the raw transcript into a coherent document.
 -   **Process**:
-    1.  Iterates through task descriptions to parse for metadata (e.g., `#urgent`, `effort:high`).
-    2.  Calculates a **Context Switching** score by analyzing the diversity of `projectId` values within a short time frame. A day with tasks from 5 different projects has a higher score than a day with tasks from just one.
--   **Outputs**: Populates the `contextSwitching` field in `state.metrics`.
+    1.  Takes the transcript and analysis as input.
+    2.  Prompts a local LLM to generate a logical outline (headings, subheadings).
+    3.  Generates content for each section based on the outline.
+-   **Output**: Populates `state.sections`.
 
-### `aggregate_scores_node`
--   **Purpose**: To combine all the calculated metrics into a preliminary score.
--   **Inputs**: `state.metrics`.
+### `diagram_generation_node`
+-   **Purpose**: To create visual diagrams from the user's descriptions.
 -   **Process**:
-    1.  Applies a set of weights to each metric (e.g., `deadlinePressure` might have a higher weight than `taskDensity`).
-    2.  Sums the weighted scores to produce a single number.
--   **Outputs**: Populates `state.weightedIndex`.
+    1.  Scans the transcript for keywords indicating a diagram is being described (e.g., "flowchart," "sequence diagram," "shows how the user logs in").
+    2.  If hints are found, it prompts an LLM with the relevant text, asking it to generate valid **Mermaid.js syntax**.
+    3.  Includes a validation step to ensure the generated Mermaid code is renderable.
+-   **Output**: Populates `state.diagrams`.
 
-### `apply_feedback_node`
--   **Purpose**: To personalize the Overload Index based on the user's subjective feedback. This creates the learning loop.
--   **Inputs**: `state.weightedIndex`, `state.userFeedback`.
+### `assembly_node`
+-   **Purpose**: To combine all generated parts into a final document.
 -   **Process**:
-    1.  Retrieves the user's historical feedback from local storage.
-    2.  If recent, relevant feedback exists (e.g., user felt overloaded at a score of 70), it applies a modifier to the `weightedIndex`. For example, it might increase the final score by 10% to better reflect the user's sensitivity.
-    3.  The logic here also updates the weights used in the `aggregate_scores_node` for future runs, allowing the system to adapt over time.
--   **Outputs**: Populates `state.finalIndex`.
+    1.  Creates a single Markdown string.
+    2.  Iterates through the `sections` and `diagrams`, inserting them in the correct order.
+-   **Output**: Populates `state.finalDocument`.
 
-### `generate_insights_node`
--   **Purpose**: To provide a simple, human-readable explanation for the current score.
--   **Inputs**: `state.finalIndex`, `state.metrics`.
+### `cognitive_load_index_node`
+-   **Purpose**: To calculate the final Cognitive Load Index (θ).
 -   **Process**:
-    1.  Identifies the top 1-2 metrics contributing to the score.
-    2.  Uses a simple template or a small LLM call to generate a recommendation.
-        -   *Example*: If `contextSwitching` is high, the output might be: "Your load is high due to frequent context switching. Try to group similar tasks together."
--   **Outputs**: Populates `state.recommendations`.
+    1.  This node acts as a final aggregator.
+    2.  It combines the `complexityScore` from the `analysis_node` with other factors like the total length of the transcript and the number of diagrams generated.
+    3.  It applies a weighting formula, which can be adjusted over time by user feedback, to produce the final score.
+-   **Output**: Populates `state.cognitiveLoadIndex`.
 
-### `handle_error_node`
--   **Purpose**: A terminal node to gracefully handle any failures in the workflow.
--   **Process**: Logs the error from `state.error` and ensures the application doesn't crash, potentially showing a "failed to sync" message in the UI. 
+## 4. Conditional Logic & Error Handling
+
+The graph uses conditional edges to provide resilience:
+-   If diagram generation fails, the workflow can bypass it and still produce a text-only document.
+-   If transcription quality is low, it can prompt the user to re-record or use a more powerful (optional) cloud model.
+-   A central `error_handler_node` catches failures from any step, logs them, and updates the UI with a helpful message, preventing the application from crashing.
+
+This architecture creates a powerful and resilient system for turning spoken ideas into structured, useful documentation while providing novel insights into the user's own cognitive workload. 
