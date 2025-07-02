@@ -6,7 +6,10 @@ import { Mic, Shield, Wifi, WifiOff } from 'lucide-react';
 import { useTranscription } from '../hooks/useTranscription';
 import { Switch } from './ui/switch';
 import { Label } from './ui/label';
-import { TranscriptionMode } from '../services/hybrid-transcription';
+import { TranscriptionMode } from '../types/transcription';
+import { Button } from './ui/button';
+import { Badge } from './ui/badge';
+import { OverloadMeter } from './OverloadMeter';
 
 interface VoiceCaptureProps {
   className?: string;

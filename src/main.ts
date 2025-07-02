@@ -1,4 +1,4 @@
-import { app, BrowserWindow } from 'electron';
+import { app, BrowserWindow, systemPreferences, shell } from 'electron';
 import path from 'node:path';
 import started from 'electron-squirrel-startup';
 import { setupIpcHandlers } from './ipc/handlers';
@@ -19,13 +19,25 @@ if (started) {
 
 // No need for custom protocol with API key authentication
 
-// Set up IPC handlers
-setupIpcHandlers();
-
 // Import sync service
 import { motionSync } from './services/motion-sync';
 import { secureStore } from './services/store';
 import { notificationService } from './services/notifications';
+
+const requestMicrophoneAccess = async () => {
+  const access = await systemPreferences.askForMediaAccess('microphone');
+  logger.info('Microphone access requested', { granted: access });
+
+  if (!access && process.platform === 'darwin') {
+    // On macOS, if access is denied, we can guide the user to settings.
+    const hasAccess = systemPreferences.getMediaAccessStatus('microphone');
+    if (hasAccess === 'denied') {
+      shell.openExternal('x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone');
+    }
+  }
+
+  return access;
+};
 
 const createWindow = async () => {
   logger.info('Creating main window');
@@ -82,8 +94,12 @@ const createWindow = async () => {
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
 app.on('ready', () => {
+  // Set up IPC handlers now that the app is ready
+  setupIpcHandlers();
+
   logger.info('App ready, creating window');
   createWindow();
+  requestMicrophoneAccess();
   
   // Schedule daily summary notification for 5 PM
   notificationService.scheduleDailySummary(17, 0);

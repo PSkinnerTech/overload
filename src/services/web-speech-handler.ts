@@ -17,6 +17,8 @@ class WebSpeechHandler {
       console.error('Web Speech API not available in this browser');
       return;
     }
+    
+    console.log('Web Speech API is available');
 
     // Set up event listeners for IPC commands from main process
     window.overloadApi.on('transcription:start-web-speech', (data: { sessionId: string }) => {
@@ -82,7 +84,18 @@ class WebSpeechHandler {
       
       if (event.error === 'network') {
         // Network error will trigger fallback to Vosk in main process
-        console.log('Network error detected, will switch to offline mode');
+        console.log('Network error detected, stopping Web Speech');
+        // Stop trying to restart on network errors
+        this.sessionId = null;
+        // Stop recognition completely
+        if (this.recognition) {
+          this.recognition.onend = null; // Remove end handler to prevent restart
+          try {
+            this.recognition.stop();
+          } catch (e) {
+            // Ignore errors when stopping
+          }
+        }
       }
       
       this.isActive = false;

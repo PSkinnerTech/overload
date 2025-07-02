@@ -2,25 +2,11 @@ import { EventEmitter } from 'events';
 import { net } from 'electron';
 import { logger } from './logger';
 import { voskModelManager } from './vosk-model-manager';
-
-export interface TranscriptionResult {
-  text: string;
-  isFinal: boolean;
-  confidence?: number;
-  timestamp: number;
-}
-
-export enum TranscriptionMode {
-  WEB_SPEECH = 'web-speech',
-  VOSK_LOCAL = 'vosk-local'
-}
-
-export interface TranscriptionStatus {
-  isActive: boolean;
-  mode: TranscriptionMode;
-  isOnline: boolean;
-  privacyMode: boolean;
-}
+import { 
+  TranscriptionResult, 
+  TranscriptionMode, 
+  TranscriptionStatus 
+} from '../types/transcription';
 
 class HybridTranscriptionService extends EventEmitter {
   private status: TranscriptionStatus = {
@@ -58,9 +44,44 @@ class HybridTranscriptionService extends EventEmitter {
    */
   private async checkConnectivity(): Promise<boolean> {
     try {
-      // Try to reach Google's DNS
-      const isOnline = await net.isOnline();
+      // A more reliable way to check for internet is to make a real request.
+      // net.isOnline() can return false positives.
+      const request = net.request({
+        method: 'HEAD',
+        protocol: 'http:',
+        hostname: 'www.google.com'
+      });
       
+      let isOnline = false;
+      
+      const onResponse = () => {
+        isOnline = true;
+      };
+
+      const onError = () => {
+        isOnline = false;
+      };
+
+      await new Promise<void>((resolve) => {
+        request.on('response', (response) => {
+          onResponse();
+          response.on('data', () => {}); // Consume data
+          response.on('end', () => resolve());
+        });
+        request.on('error', (err) => {
+          onError();
+          resolve();
+        });
+        request.end();
+        setTimeout(() => {
+          if (!isOnline) {
+            request.abort(); // Abort if it takes too long
+            onError();
+          }
+          resolve();
+        }, 3000); // 3-second timeout
+      });
+
       if (isOnline !== this.status.isOnline) {
         this.status.isOnline = isOnline;
         logger.info('Connectivity status changed', { isOnline });
@@ -76,6 +97,10 @@ class HybridTranscriptionService extends EventEmitter {
       return isOnline;
     } catch (error) {
       logger.error('Connectivity check failed', { error: (error as Error).message });
+      if (this.status.isOnline) {
+        this.status.isOnline = false;
+        this.emit('connectivity-changed', false);
+      }
       return false;
     }
   }

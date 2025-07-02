@@ -33,7 +33,8 @@ const overloadApi = {
   
   // Feedback methods
   feedback: {
-    submit: (rating: number) => ipcRenderer.invoke('feedback:submit', rating),
+    submit: (data: { sessionId: string; subjective_rating: number; comment?: string }) => 
+      ipcRenderer.invoke('feedback:submit', data),
   },
   
   // Audio recording methods
@@ -43,7 +44,7 @@ const overloadApi = {
     pauseRecording: () => ipcRenderer.invoke('audio:pause-recording'),
     resumeRecording: () => ipcRenderer.invoke('audio:resume-recording'),
     getState: () => ipcRenderer.invoke('audio:get-state'),
-    sendChunk: (chunk: Float32Array) => ipcRenderer.invoke('audio:send-chunk', chunk),
+    sendChunk: (chunk: number[]) => ipcRenderer.invoke('audio:send-chunk', chunk),
   },
   
   // Transcription methods
@@ -53,6 +54,7 @@ const overloadApi = {
     setPrivacyMode: (enabled: boolean) => ipcRenderer.invoke('transcription:set-privacy-mode', enabled),
     getStatus: () => ipcRenderer.invoke('transcription:get-status'),
     webSpeechResult: (result: any) => ipcRenderer.invoke('transcription:web-speech-result', result),
+    webSpeechError: (error: any) => ipcRenderer.invoke('transcription:web-speech-error', error),
   },
   
   // Document processing methods
@@ -93,6 +95,14 @@ const overloadApi = {
   removeAllListeners: (channel: string) => {
     ipcRenderer.removeAllListeners(channel);
   },
+  
+  // App-level handlers
+  getVersion: (): Promise<string> => ipcRenderer.invoke('app:get-version'),
+  getMicrophoneAccess: (): Promise<'not-determined' | 'granted' | 'denied' | 'restricted'> => ipcRenderer.invoke('app:get-microphone-access'),
+
+  // Overload Index
+  getOverload: (): Promise<any> => ipcRenderer.invoke('overload:get-current'),
+  getOverloadHistory: (days: number): Promise<any> => ipcRenderer.invoke('overload:get-history', days),
 };
 
 // Expose the API to the renderer process

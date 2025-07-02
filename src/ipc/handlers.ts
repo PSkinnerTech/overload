@@ -1,4 +1,4 @@
-import { ipcMain, BrowserWindow } from 'electron';
+import { ipcMain, BrowserWindow, app, dialog, shell, systemPreferences } from 'electron';
 import * as fs from 'fs';
 import { secureStore } from '../services/store';
 import { motionAuth } from '../services/motion-auth-simple';
@@ -8,6 +8,13 @@ import { logger } from '../services/logger';
 import { audioRecorder } from '../services/audio-recorder';
 import { hybridTranscription } from '../services/hybrid-transcription';
 import { documentProcessor } from '../services/document-processor';
+import { notificationService } from '../services/notifications';
+
+interface Settings {
+  syncInterval: number;
+  overloadThreshold: number;
+  notificationsEnabled: boolean;
+}
 
 export function setupIpcHandlers() {
   logger.info('Setting up IPC handlers');
@@ -146,13 +153,13 @@ export function setupIpcHandlers() {
   });
   
   // Settings handlers
-  ipcMain.handle('settings:get', async (event, key: string) => {
+  ipcMain.handle('settings:get', (event, key: keyof Settings) => {
     const settings = secureStore.getSettings();
-    return settings[key as keyof typeof settings];
+    return settings[key];
   });
   
-  ipcMain.handle('settings:set', async (event, key: string, value: number | boolean) => {
-    secureStore.setSetting(key as keyof ReturnType<typeof secureStore.getSettings>, value);
+  ipcMain.handle('settings:set', (event, key: keyof Settings, value: number | boolean) => {
+    secureStore.setSetting(key, value);
     return { success: true };
   });
   
@@ -220,9 +227,11 @@ export function setupIpcHandlers() {
     return audioRecorder.getState();
   });
 
-  ipcMain.handle('audio:send-chunk', async (event, chunk: Float32Array) => {
-    audioRecorder.addAudioChunk(chunk);
-    hybridTranscription.processAudioChunk(chunk);
+  ipcMain.handle('audio:send-chunk', async (event, chunk: number[]) => {
+    // Convert array back to Float32Array
+    const float32Chunk = new Float32Array(chunk);
+    audioRecorder.addAudioChunk(float32Chunk);
+    hybridTranscription.processAudioChunk(float32Chunk);
   });
 
   // Forward audio events to renderer

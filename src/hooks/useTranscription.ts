@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { TranscriptionResult, TranscriptionMode, TranscriptionStatus } from '../services/hybrid-transcription';
+import { TranscriptionResult, TranscriptionMode, TranscriptionStatus } from '../types/transcription';
 
 export interface UseTranscriptionReturn {
   transcript: string;
@@ -31,7 +31,7 @@ export function useTranscription(): UseTranscriptionReturn {
 
   // Set up event listeners
   useEffect(() => {
-    const handleTranscriptionStarted = (data: { sessionId: string; mode: TranscriptionMode }) => {
+    const handleTranscriptionStarted = (data: any) => {
       console.log('Transcription started:', data);
       setStatus(prev => ({ ...prev, isActive: true, mode: data.mode }));
     };
@@ -41,7 +41,7 @@ export function useTranscription(): UseTranscriptionReturn {
       setStatus(prev => ({ ...prev, isActive: false }));
     };
 
-    const handleTranscriptionResult = (result: TranscriptionResult) => {
+    const handleTranscriptionResult = (result: any) => {
       if (result.isFinal) {
         // Append to transcript
         const newText = transcriptRef.current + (transcriptRef.current ? ' ' : '') + result.text;
@@ -54,7 +54,7 @@ export function useTranscription(): UseTranscriptionReturn {
       }
     };
 
-    const handleModeSwitched = (data: { from: TranscriptionMode; to: TranscriptionMode }) => {
+    const handleModeSwitched = (data: any) => {
       console.log('Transcription mode switched:', data);
       setStatus(prev => ({ ...prev, mode: data.to }));
     };

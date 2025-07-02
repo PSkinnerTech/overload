@@ -84,11 +84,23 @@ class AudioRecorderService extends EventEmitter {
       chunks: this.audioChunks.length 
     });
 
-    // Save the recording
-    const filePath = await this.saveRecording();
+    let filePath: string | null = null;
     
-    this.state = RecordingState.IDLE;
-    this.currentSessionId = null;
+    try {
+      // Save the recording if we have audio chunks
+      if (this.audioChunks.length > 0) {
+        filePath = await this.saveRecording();
+      } else {
+        logger.warn('No audio chunks recorded', { sessionId });
+      }
+    } catch (error) {
+      logger.error('Failed to save recording', { error, sessionId });
+    } finally {
+      // Always reset state to prevent getting stuck
+      this.state = RecordingState.IDLE;
+      this.currentSessionId = null;
+      this.audioChunks = []; // Clear chunks
+    }
     
     this.emit('recording-stopped', { 
       sessionId, 

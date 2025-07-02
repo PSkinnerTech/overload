@@ -21,7 +21,7 @@ import {
 } from 'lucide-react';
 import { Switch } from './ui/switch';
 import { Label } from './ui/label';
-import { TranscriptionMode } from '../services/hybrid-transcription';
+import { TranscriptionMode } from '../types/transcription';
 
 interface ProcessingState {
   isProcessing: boolean;
@@ -171,7 +171,7 @@ export function RecordingSession() {
               ) : (
                 <>
                   <WifiOff className="h-4 w-4 text-orange-500" />
-                  <span className="text-orange-700">Offline</span>
+                  <span className="text-orange-700">Offline (Vosk not available)</span>
                 </>
               )}
             </div>
@@ -213,9 +213,11 @@ export function RecordingSession() {
               <CardHeader>
                 <CardTitle>Voice Recording</CardTitle>
                 <CardDescription>
-                  {transcriptionMode === TranscriptionMode.WEB_SPEECH 
-                    ? 'Using online transcription for best accuracy'
-                    : 'Using offline transcription for privacy'}
+                  {!isOnline 
+                    ? 'No internet connection - Audio recording only (Vosk offline transcription not yet configured)'
+                    : transcriptionMode === TranscriptionMode.WEB_SPEECH 
+                      ? 'Using online transcription for best accuracy'
+                      : 'Using offline transcription for privacy'}
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -238,6 +240,14 @@ export function RecordingSession() {
                   isTranscribing={isTranscribing}
                   onClear={handleClearSession}
                 />
+                {!isOnline && isTranscribing && (
+                  <Alert>
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>
+                      Audio is being recorded locally. Transcription will be available when you reconnect to the internet or configure Vosk for offline processing.
+                    </AlertDescription>
+                  </Alert>
+                )}
               </CardContent>
             </Card>
           </div>

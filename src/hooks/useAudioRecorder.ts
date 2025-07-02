@@ -10,7 +10,7 @@ export interface AudioRecorderState {
 
 export interface UseAudioRecorderReturn {
   state: AudioRecorderState;
-  startRecording: () => Promise<void>;
+  startRecording: (sessionId: string) => Promise<void>;
   stopRecording: () => Promise<void>;
   pauseRecording: () => Promise<void>;
   resumeRecording: () => Promise<void>;
@@ -30,26 +30,40 @@ export function useAudioRecorder(): UseAudioRecorderReturn {
   });
   
   const [permissionGranted, setPermissionGranted] = useState(false);
+  const [permissionError, setPermissionError] = useState<string | null>(null);
   
   const audioContextRef = useRef<AudioContext | null>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
   const processorNodeRef = useRef<ScriptProcessorNode | null>(null);
   const startTimeRef = useRef<number>(0);
   const durationIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const isRecordingRef = useRef<boolean>(false);
 
   // Request microphone permission on mount
   useEffect(() => {
+    console.log('Requesting microphone permission...');
     navigator.mediaDevices.getUserMedia({ audio: true })
-      .then(() => setPermissionGranted(true))
+      .then((stream) => {
+        console.log('Microphone permission granted');
+        setPermissionGranted(true);
+        // Stop the stream immediately as we only needed permission
+        stream.getTracks().forEach(track => track.stop());
+      })
       .catch((error) => {
-        console.error('Microphone permission denied:', error);
-        setState(prev => ({ ...prev, error: 'Microphone permission denied' }));
+        console.error('Microphone permission error:', error.name, error.message);
+        if (error.name === 'NotAllowedError') {
+          setState(prev => ({ ...prev, error: 'Microphone permission denied. Please allow microphone access in your browser settings.' }));
+        } else if (error.name === 'NotFoundError') {
+          setState(prev => ({ ...prev, error: 'No microphone found. Please connect a microphone and reload.' }));
+        } else {
+          setState(prev => ({ ...prev, error: `Microphone error: ${error.message}` }));
+        }
       });
   }, []);
 
   // Set up audio level listener
   useEffect(() => {
-    const handleAudioLevel = (data: { level: number }) => {
+    const handleAudioLevel = (data: any) => {
       setState(prev => ({ ...prev, audioLevel: data.level }));
     };
 
@@ -83,22 +97,40 @@ export function useAudioRecorder(): UseAudioRecorderReturn {
     };
   }, [state.isRecording, state.isPaused]);
 
-  const startRecording = useCallback(async () => {
-    if (!permissionGranted) {
-      setState(prev => ({ ...prev, error: 'Microphone permission not granted' }));
+  const checkPermissions = async () => {
+    console.log('Requesting microphone permission via main process...');
+    const status = await window.overloadApi.getMicrophoneAccess();
+    console.log('Microphone access status:', { status });
+
+    if (status !== 'granted') {
+      const message = 'Microphone permission was not granted. Please grant it in System Settings.';
+      console.warn(message);
+      setPermissionError(message);
+      return false;
+    }
+    
+    setPermissionError(null);
+    return true;
+  };
+
+  const startRecording = useCallback(async (sessionId: string) => {
+    if (state.isRecording) return;
+
+    const hasPermission = await checkPermissions();
+    if (!hasPermission) {
       return;
     }
 
+    console.log('Starting recording process...', { sessionId });
     try {
       // Get microphone stream
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
+          sampleRate: 16000,
           channelCount: 1,
-          sampleRate: SAMPLE_RATE,
           echoCancellation: true,
           noiseSuppression: true,
-          autoGainControl: true,
-        }
+        },
       });
 
       mediaStreamRef.current = stream;
@@ -116,13 +148,21 @@ export function useAudioRecorder(): UseAudioRecorderReturn {
       const processor = audioContext.createScriptProcessor(CHUNK_SIZE, 1, 1);
       processorNodeRef.current = processor;
 
-      processor.onaudioprocess = (e) => {
-        if (state.isRecording && !state.isPaused) {
+      // Set recording ref to true
+      isRecordingRef.current = true;
+      
+      let chunkCount = 0;
+      processor.onaudioprocess = (e: AudioProcessingEvent) => {
+        if (isRecordingRef.current && !state.isPaused) {
           const inputData = e.inputBuffer.getChannelData(0);
-          const chunk = new Float32Array(inputData);
+          // Send a copy to avoid transfer issues
+          window.overloadApi.audio.sendChunk(Array.from(inputData));
           
-          // Send chunk to main process
-          window.overloadApi.audio.sendChunk(chunk);
+          // Log every 10th chunk to avoid spam
+          chunkCount++;
+          if (chunkCount % 10 === 0) {
+            console.log(`Sent audio chunk #${chunkCount}, size: ${inputData.length}`);
+          }
         }
       };
 
@@ -141,6 +181,7 @@ export function useAudioRecorder(): UseAudioRecorderReturn {
           duration: 0,
           error: null,
         });
+        console.log('Recording started successfully');
       } else {
         throw new Error(result.error || 'Failed to start recording');
       }
@@ -161,10 +202,13 @@ export function useAudioRecorder(): UseAudioRecorderReturn {
         audioContextRef.current = null;
       }
     }
-  }, [permissionGranted, state.isRecording, state.isPaused]);
+  }, [state.isRecording, state.isPaused]);
 
   const stopRecording = useCallback(async () => {
     try {
+      // Stop recording flag first to prevent more chunks
+      isRecordingRef.current = false;
+      
       // Stop recording in main process
       const result = await window.overloadApi.audio.stopRecording();
       
