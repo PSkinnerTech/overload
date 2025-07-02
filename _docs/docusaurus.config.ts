@@ -15,7 +15,7 @@ const config: Config = {
   },
 
   // Set the production url of your site here
-  url: 'https://your-docusaurus-site.example.com',
+  url: 'https://overload-docs.vercel.app',
   // Set the /<baseUrl>/ pathname under which your site is served
   // For GitHub pages deployment, it is often '/<projectName>/'
   baseUrl: '/',
@@ -53,23 +53,9 @@ const config: Config = {
           // Please change this to your repo.
           // Remove this to remove the "edit this page" links.
           editUrl:
-            'https://github.com/facebook/docusaurus/tree/main/packages/create-docusaurus/templates/shared/',
+            'https://github.com/PSkinnerTech/overload/tree/main/_docs/',
         },
-        blog: {
-          showReadingTime: true,
-          feedOptions: {
-            type: ['rss', 'atom'],
-            xslt: true,
-          },
-          // Please change this to your repo.
-          // Remove this to remove the "edit this page" links.
-          editUrl:
-            'https://github.com/facebook/docusaurus/tree/main/packages/create-docusaurus/templates/shared/',
-          // Useful options to enforce blogging best practices
-          onInlineTags: 'warn',
-          onInlineAuthors: 'warn',
-          onUntruncatedBlogPosts: 'warn',
-        },
+        blog: false, // We are not using the blog plugin
         theme: {
           customCss: './src/css/custom.css',
         },
@@ -91,11 +77,10 @@ const config: Config = {
           type: 'docSidebar',
           sidebarId: 'tutorialSidebar',
           position: 'left',
-          label: '2nd Brain',
+          label: 'Docs',
         },
-        {to: '/blog', label: 'Blog', position: 'left'},
         {
-          href: 'https://github.com/facebook/docusaurus',
+          href: 'https://github.com/PSkinnerTech/overload',
           label: 'GitHub',
           position: 'right',
         },
@@ -108,7 +93,7 @@ const config: Config = {
           title: 'Docs',
           items: [
             {
-              label: '2nd Brain',
+              label: 'Docs',
               to: '/docs/intro',
             },
           ],
@@ -134,12 +119,12 @@ const config: Config = {
           title: 'More',
           items: [
             {
-              label: 'Brain Lifts',
-              to: '/brain-lifts',
+              label: 'BrainLift',
+              to: '/docs/brain-lift-1',
             },
             {
               label: 'GitHub',
-              href: 'https://github.com/facebook/docusaurus',
+              href: 'https://github.com/PSkinnerTech/overload',
             },
           ],
         },
